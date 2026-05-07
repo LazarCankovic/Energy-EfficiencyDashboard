@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>No Data Available</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f0eb;
+            padding: 40px;
+            max-width: 600px;
+            margin: 0 auto;
+            color: #333;
+        }
+        a { color: #c8622a; text-decoration: none; font-size: 13px; }
+        h1 { font-size: 22px; margin: 10px 0 4px; }
+        hr { border: none; border-top: 1px solid #ccc; margin: 14px 0 20px; }
+        .box {
+            background: white;
+            border-left: 4px solid #c8622a;
+            padding: 20px 24px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: #444;
+        }
+        .box b { display: block; margin-bottom: 8px; font-size: 16px; }
+        .box p { margin: 0 0 10px; }
+        .box .reason { font-size: 12px; color: #999; margin-top: 12px; }
+    </style>
+</head>
+<body>
+    <a href="/">← Back</a>
+    <h1>{{ metric }} for {{ state }}</h1>
+    <hr>
+    <div class="box">
+        <b>No data available</b>
+        <p>The EIA does not have recorded generation data for <strong>{{ metric }}</strong> in <strong>{{ state }}</strong> for the selected time range.</p>
+    </div>
+</body>
+</html>
