@@ -64,28 +64,66 @@
 
         .summary {
             background: white;
+            border-left: 4px solid #c8622a;
             padding: 14px 18px;
             font-size: 14px;
             line-height: 1.7;
-            color: #0e0e0e;
+            color: #444;
+            margin-bottom: 20px;
+        }
+
+        .summary b {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .prediction-box {
+            background: white;
+            border-left: 4px solid #4a7c6f;
+            padding: 14px 18px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: #444;
+        }
+
+        .prediction-box b {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .legend-row {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .legend-dot {
+            display: inline-block;
+            width: 24px;
+            height: 3px;
+            margin-right: 6px;
+            vertical-align: middle;
         }
     </style>
 </head>
 <body>
 
     <a href="/">← Back</a>
-
     <h1>{{ metric }} for {{ state }}</h1>
     <hr>
 
     <table>
         <tr>
             <th>Avg / Month</th>
+            <th>Peak Month</th>
             <th>Minimum</th>
             <th>Total</th>
         </tr>
         <tr>
             <td>{{ stats.average }} thousand MWh</td>
+            <td>{{ stats.max }} thousand MWh ({{ stats.max_period }})</td>
             <td>{{ stats.min }} thousand MWh</td>
             <td>{{ stats.total }} thousand MWh</td>
         </tr>
@@ -93,7 +131,17 @@
 
     <div class="charts-row">
         <div class="chart-box">
-            <p>Generation Over Time</p>
+            <p>Generation Over Time + 12-Month Forecast</p>
+            <div class="legend-row">
+                <span>
+                    <span class="legend-dot" style="background:#c8622a; display:inline-block;"></span>
+                    Actual
+                </span>
+                <span>
+                    <span class="legend-dot" style="background:#4a7c6f; border-top: 2px dashed #4a7c6f; display:inline-block;"></span>
+                    Forecast
+                </span>
+            </div>
             <canvas id="lineChart"></canvas>
         </div>
         <div class="chart-box">
@@ -107,6 +155,14 @@
         {{ stats.summary }}
     </div>
 
+    <div class="prediction-box">
+        <b>12-Month Forecast</b>
+        Based on the trend in your selected range, the model predicts an average of
+        <strong>{{ pred_next_avg }} thousand MWh</strong> per month over the next year
+        ({{ pred_labels[0] }} to {{ pred_labels[11] }}).
+        This is estimated using a polynomial regression model fitted to your historical data.
+    </div>
+
 </body>
 <script>
     const chartData = {{ chart_data | safe }};
@@ -114,24 +170,62 @@
     Chart.defaults.font = { family: "Arial, sans-serif", size: 11 };
     Chart.defaults.color = "#888";
 
+    // combine actual + forecast labels and datasets
+    const allLabels = [...chartData.line.labels, ...chartData.line.pred_labels];
+
+    // actual data: real values + nulls for the forecast period
+    const actualValues = [
+        ...chartData.line.values,
+        ...Array(chartData.line.pred_labels.length).fill(null)
+    ];
+
+    // forecast data: nulls for historical period, then predictions
+    // overlap by 1 so the lines connect visually
+    const forecastValues = [
+        ...Array(chartData.line.values.length - 1).fill(null),
+        chartData.line.values[chartData.line.values.length - 1],
+        ...chartData.line.pred_values
+    ];
+
     new Chart(document.getElementById("lineChart"), {
         type: "line",
         data: {
-            labels: chartData.line.labels,
-            datasets: [{
-                data: chartData.line.values,
-                backgroundColor: "rgba(200,98,42,0.08)",
-                pointRadius: 2,
-                fill: true,
-                tension: 0.3,
-            }]
+            labels: allLabels,
+            datasets: [
+                {
+                    label: "Actual",
+                    data: actualValues,
+                    borderColor: "#c8622a",
+                    backgroundColor: "rgba(200,98,42,0.08)",
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    fill: true,
+                    tension: 0.3,
+                    spanGaps: false,
+                },
+                {
+                    label: "Forecast",
+                    data: forecastValues,
+                    borderColor: "#4a7c6f",
+                    backgroundColor: "rgba(74,124,111,0.06)",
+                    borderWidth: 2,
+                    borderDash: [6, 3],
+                    pointRadius: 2,
+                    fill: true,
+                    tension: 0.3,
+                    spanGaps: false,
+                }
+            ]
         },
         options: {
             responsive: true,
             animation: false,
-            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: true }
+            },
             scales: {
-                x: { ticks: { maxTicksLimit: 7 } },
+                x: { ticks: { maxTicksLimit: 8 } },
                 y: {}
             }
         }
@@ -144,12 +238,14 @@
             datasets: [{
                 data: chartData.bar.values,
                 backgroundColor: "rgba(74,124,111,0.7)",
+                borderColor: "#4a7c6f",
+                borderWidth: 1,
             }]
         },
         options: {
             responsive: true,
             animation: false,
-            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            plugins: { legend: { display: false }, tooltip: { enabled: true } },
             scales: { x: {}, y: {} }
         }
     });
